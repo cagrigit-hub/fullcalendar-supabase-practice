@@ -9,7 +9,8 @@ async function getInitialEvents(params: any) {
   let { data, error } = await serviceSupabase
     .from("events")
     .select("*")
-    .eq("to", userId);
+    .eq("to_id", userId)
+    .eq("isAccepted", true);
   if (!error) {
     data?.push({
       id: "1",

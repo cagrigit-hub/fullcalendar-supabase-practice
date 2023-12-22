@@ -6,9 +6,14 @@ function Profile({ profiles }: { profiles: any }) {
     <div>
       {profiles.map((profile: any) => {
         return (
-          <Link key={profile.id} href={`/events/${profile.id}`}>
-            <div>{profile.email}</div>
-          </Link>
+          <div key={profile.id}>
+            <Link href={`/events/${profile.id}`}>
+              <div>calendar: {profile.email}</div>
+            </Link>
+            <Link href={`/invitations/${profile.id}`}>
+              <div>invitations: {profile.email}</div>
+            </Link>
+          </div>
         );
       })}
     </div>

@@ -33,8 +33,8 @@ function Home({ initialEvents }: { initialEvents: any }) {
 
     const { data, error } = await supabase.from("events").insert([
       {
-        from: session?.user?.id,
-        to: params.userId,
+        from_id: session?.user?.id,
+        to_id: params.userId,
         title: title,
         start: selectInfo?.startStr + "T" + startTime + ":00",
         end: selectInfo?.endStr + "T" + endTime + ":00",
