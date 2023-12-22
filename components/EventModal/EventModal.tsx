@@ -1,5 +1,3 @@
-import { DateSelectArg } from "@fullcalendar/core";
-import { createClient } from "@supabase/supabase-js";
 import React from "react";
 
 function EventModal({

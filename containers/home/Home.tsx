@@ -10,26 +10,31 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import allLocales from "@fullcalendar/core/locales-all";
-import { createClient } from "@supabase/supabase-js";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import EventModal from "@/components/EventModal";
+import { AuthContext } from "@/app/layout";
+import { useRouter, useParams } from "next/navigation";
+import supabase from "@/supabase";
+
 let id = 0;
 
+export const dynamic = "auto";
+
 function Home({ initialEvents }: { initialEvents: any }) {
+  const session = useContext(AuthContext);
+  const params = useParams();
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
-    );
     const title = e.currentTarget.titlex.value;
     const startTime = e.currentTarget.startTime.value;
     const endTime = e.currentTarget.endTime.value;
 
     const { data, error } = await supabase.from("events").insert([
       {
+        from: session?.user?.id,
+        to: params.userId,
         title: title,
         start: selectInfo?.startStr + "T" + startTime + ":00",
         end: selectInfo?.endStr + "T" + endTime + ":00",
@@ -37,24 +42,29 @@ function Home({ initialEvents }: { initialEvents: any }) {
       },
     ]);
     const calendarApi = selectInfo?.view.calendar;
-    calendarApi?.unselect();
     if (!error) {
       calendarApi?.addEvent({
         id: String(id++),
         title: title,
         start: selectInfo?.startStr + "T" + startTime + ":00",
         end: selectInfo?.endStr + "T" + endTime + ":00",
-        allDay: selectInfo?.allDay,
+        allDay: false,
       });
+      setIsModalOpen(false);
+      setSelectInfo(undefined);
+      calendarApi?.unselect();
     }
   };
 
   const [events, setEvents] = useState<Array<EventApi>>([]);
   const [selectInfo, setSelectInfo] = useState<DateSelectArg>();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    console.log("eventler_react_kısmında", events);
+    console.log("eventler_react_kisminda", events);
   }, [events]);
+
   const handleEvents = async (events: EventApi[]) => {
     console.log("changeddddddd");
     setEvents(events);
@@ -69,27 +79,46 @@ function Home({ initialEvents }: { initialEvents: any }) {
   };
 
   const handleEventClick = (clickInfo: EventClickArg) => {
-    alert(`Tıklanılan Event ${clickInfo.event.title}`);
+    const c = clickInfo.event.extendedProps;
+    const is = c.extendendProps.onlyClickableByOwner;
+    if (is) {
+      return;
+    }
+    alert(`Tiklanilan Event ${clickInfo.event.title}`);
     console.log(clickInfo.event.id);
-    clickInfo.event.remove();
+    // clickInfo.event.remove();
   };
+
   const handleDateSelect = async (selectInfo: DateSelectArg) => {
+    console.log(selectInfo);
     setSelectInfo(selectInfo);
+    setIsModalOpen(true);
   };
   return (
     <>
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+        selectOverlap={function (event: any) {
+          return event.rendering === "background";
+        }}
         customButtons={{
           btn: {
-            text: "Buton Texti",
-            click(ev: MouseEvent, element: HTMLElement) {
-              alert("Özel Butona Tıklandı");
+            text: "Sign out",
+            async click(ev: MouseEvent, element: HTMLElement) {
+              ev.preventDefault();
+              // sign out
+              await supabase.auth.signOut();
+              // redirect to home
+              router.refresh();
             },
           },
         }}
         dateClick={(e) => {
-          console.log("dateclick", e);
+          // log if event is background
+          // @ts-ignore
+          if (e.jsEvent.target?.classList.contains("fc-bg-event")) {
+            console.log("sdasd", e);
+          }
         }}
         select={handleDateSelect}
         eventClick={handleEventClick}
@@ -126,10 +155,10 @@ function Home({ initialEvents }: { initialEvents: any }) {
         eventChange={(e) => {
           console.log("event değişti", e);
         }}
-        dayMaxEvents={true}
+        // dayMaxEvents={true}
         weekends={true}
         locales={allLocales}
-        firstDay={1}
+        // firstDay={1}
         locale={"tr"}
         buttonText={{
           day: "Gün",
@@ -142,8 +171,7 @@ function Home({ initialEvents }: { initialEvents: any }) {
           week: "Haftaaaa",
         }}
       />
-
-      <EventModal onSubmit={handleSubmit} />
+      {isModalOpen && <EventModal onSubmit={handleSubmit} />}
     </>
   );
 }
